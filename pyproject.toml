@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-research-paper-applications"
+version = "0.1.0"
+description = "Research paper analysis framework with Streamlit UI, wiki system, and practical code extraction."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Rodolfo Lerma Contreras" }
+]
+dependencies = [
+  "PyMuPDF>=1.24.0",
+  "pdfplumber>=0.11.0",
+  "pdf2image>=1.17.0",
+  "pandas>=2.0.0",
+  "numpy>=1.24.0",
+  "spacy>=3.7.0",
+  "streamlit>=1.35.0",
+  "Pillow>=10.0.0",
+  "python-dotenv>=1.0.0",
+  "tqdm>=4.66.0",
+  "rich>=13.0.0",
+  "pytest>=8.0.0"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
