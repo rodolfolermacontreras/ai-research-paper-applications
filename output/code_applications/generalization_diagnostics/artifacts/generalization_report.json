@@ -1,0 +1,12 @@
+{
+  "train_mse": 0.06577735331015659,
+  "test_mse": 0.05928836274277684,
+  "generalization_gap": -0.006488990567379754,
+  "ntk_condition_number": 53907146913.67913,
+  "effective_dimension": 1.5169087104000225,
+  "signal_rank": 2,
+  "signal_energy_ratio": 0.30174124996264423,
+  "noise_signal_ratio": 0.0069532408701514295,
+  "top_eigenvalue": 539.0714691367913,
+  "median_eigenvalue": 1.460443784092556e-14
+}

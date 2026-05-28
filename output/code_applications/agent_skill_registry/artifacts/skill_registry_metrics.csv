@@ -1,0 +1,5 @@
+name,description,tags,runs,avg_score,avg_latency_ms,last_score
+first_sentence_summary,Return the first sentence as a summary.,"summary, text",2,1.0,0.08014999912120402,1.0
+sentiment_label,"Assign positive, negative, or neutral sentiment.","analysis, sentiment, text",2,1.0,0.009549999958835542,1.0
+extract_keywords,Extract keyword candidates.,"analysis, keywords, text",2,0.6,0.17374999879393727,0.6
+normalize_text,Normalize casing and whitespace.,"cleanup, text",0,0.0,0.0,0.0
