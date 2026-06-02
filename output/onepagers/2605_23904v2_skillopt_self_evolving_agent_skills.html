@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillOpt: Executive Strategy for Self-Evolving Agent Skills</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --accent: #2b6cb0;
+  --bg: #f7fafc;
+  --card-bg: #ffffff;
+  --text: #2d3748;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --code-bg: #edf2f7;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  padding: 2rem 1rem;
+}
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+}
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 2rem 2.5rem;
+  border-radius: 12px 12px 0 0;
+}
+header h1 {
+  font-size: 1.65rem;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+header .meta {
+  font-size: 0.92rem;
+  opacity: 0.85;
+}
+main {
+  background: var(--card-bg);
+  padding: 2rem 2.5rem;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+section {
+  margin-bottom: 1.8rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+h2 {
+  color: var(--accent);
+  font-size: 1.2rem;
+  margin-bottom: 0.7rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+p { margin-bottom: 0.8rem; }
+ul { margin: 0.5rem 0 1rem 1.5rem; }
+li { margin-bottom: 0.4rem; }
+blockquote {
+  background: var(--code-bg);
+  border-left: 4px solid var(--accent);
+  padding: 0.8rem 1.2rem;
+  margin: 0.8rem 0;
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin-bottom: 0; }
+pre {
+  background: #1a202c;
+  color: #e2e8f0;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  margin: 0.8rem 0;
+}
+code {
+  background: var(--code-bg);
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+pre code {
+  background: transparent;
+  padding: 0;
+}
+strong { color: var(--primary); }
+.abstract blockquote {
+  font-style: italic;
+  font-size: 0.95rem;
+}
+footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+@media print {
+  body { padding: 0; }
+  header { border-radius: 0; }
+  main { box-shadow: none; border-radius: 0; }
+  section { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>SkillOpt: Executive Strategy for Self-Evolving Agent Skills</h1>
+  <div class="meta">Yifan Yang, Ziyang Gong, Weiquan Huang, Qihao Yang, Ziwei Zhou, Zisu Huang, Yan Li, Xuemei Gao, Qi Dai, Bei Liu, Kai Qiu, Yuqing Yang, Dongdong Chen, Xue Yang, Chong Luo -- May 2026</div>
+</header>
+<main>
+<section class="abstract">
+<h2>Abstract</h2>
+<blockquote><p>Agent skills are often written by hand, generated once, or updated through loosely controlled self-revision. The paper argues that this is too unstable and too hard to improve systematically. Instead, the authors treat the skill itself as a trainable external state for a frozen agent. SkillOpt is their proposed text-space optimizer for agent skills: a separate optimizer model reads scored execution traces, proposes bounded add/delete/replace edits to one skill document, and accepts an edit only if it improves a held-out validation score. Stability comes from several training-style controls: a textual learning-rate budget, a rejected-edit buffer, and an epoch-wise slow/meta update. Across six benchmarks, seven target models, and three execution settings (direct chat, Codex, Claude Code), SkillOpt is best or tied-best on all 52 evaluated model/benchmark/harness cells. On GPT-5.5, it improves average no-skill accuracy by +23.5 points in direct chat, +24.8 in Codex, and +19.1 in Claude Code. The learned skill artifacts also transfer across model scales, across agent harnesses, and to a nearby math benchmark without further optimization.</p></blockquote>
+</section>
+<section>
+<h2>Key Contributions</h2>
+<ul>
+<li>Reframes agent-skill learning as optimization over an external natural-language artifact rather than model weights.</li>
+<li>Introduces <strong>SkillOpt</strong>, a controllable skill optimizer with rollout batches, reflection minibatches, bounded edits, validation gating, rejected-edit memory, and slow/meta updates.</li>
+<li>Shows strong empirical performance across six benchmarks, seven target models, and three execution environments.</li>
+<li>Demonstrates that optimized skills are portable artifacts that can transfer across models, harnesses, and nearby tasks.</li>
+<li>Provides evidence that compact textual skills can act as a practical domain-adaptation layer for frozen frontier agents.</li>
+</ul>
+</section>
+<section>
+<h2>What is SkillOpt?</h2>
+<p>SkillOpt is an offline training loop for agent skills. The target agent model stays frozen. Instead of tuning weights or only rewriting a prompt, SkillOpt repeatedly edits a persistent skill document such as <code>best_skill.md</code>. That document contains procedural guidance: how to inspect evidence, how to use tools, how to format answers, what common failure modes to avoid, and what verification habits to follow.</p>
+<p>The central idea is simple: if the thing that changes agent behavior in practice is often the procedural instructions around the model, then that instruction artifact should itself be optimized like a trainable object.</p>
+</section>
+<section>
+<h2>How does skill evolution work?</h2>
+<p>Skill evolution in this paper is not free-form self-editing. It follows a controlled loop: 1. Run the frozen agent on tasks using the current skill. 2. Collect trajectories, scores, tool calls, outputs, and failures. 3. Use a separate optimizer model to analyze common patterns across multiple successes and failures. 4. Convert those patterns into a small set of structured edits. 5. Apply only a limited number of edits. 6. Keep the new skill only if it beats the previous one on a held-out validation split.</p>
+<p>That makes skill learning look more like optimization and less like prompt tinkering.</p>
+</section>
+<section>
+<h2>What is the “executive strategy”?</h2>
+<p>The paper’s “executive strategy” is essentially a management layer over skill revision. Instead of letting the model rewrite instructions however it wants, SkillOpt constrains the update process through explicit controls:</p>
+<ul>
+<li>bounded edit budgets,</li>
+<li>minibatch reflection over multiple traces,</li>
+<li>held-out validation before accepting changes,</li>
+<li>memory of rejected edits,</li>
+<li>slower cross-epoch consolidation separate from fast local edits.</li>
+</ul>
+<p>In practical terms, this means the system behaves like a disciplined editor or training supervisor for agent instructions.</p>
+</section>
+<section>
+<h2>System Architecture</h2>
+<p>SkillOpt has four main parts:</p>
+<p>1. <strong>Frozen target model</strong> This is the agent being improved. It may run as direct chat or inside a tool-using harness like Codex or Claude Code. Its weights never change.</p>
+<p>2. <strong>Current skill document</strong> This is the trainable external policy. It is injected into the agent context as instructions or persistent procedural memory.</p>
+<p>3. <strong>Optimizer model</strong> A separate frontier model reads rollout evidence and proposes edits. It acts like a teacher or optimizer, not the deployed runtime agent.</p>
+<p>4. <strong>Validation and selection machinery</strong> Candidate skills are evaluated on a held-out selection split. Only skills that strictly improve the validation score are accepted.</p>
+<p>The interaction pattern is:</p>
+<ul>
+<li>agent executes tasks with current skill,</li>
+<li>harness records trajectories and scores,</li>
+<li>optimizer reflects over failures and successes,</li>
+<li>merged edits are ranked and clipped to a budget,</li>
+<li>candidate skill is validated,</li>
+<li>accepted skill becomes current and possibly best skill.</li>
+</ul>
+<p>A slower epoch-level mechanism compares previous and current epoch skills on the same examples, then writes long-horizon guidance into a protected slow-update section. An optimizer-side meta-skill stores lessons about which edit patterns helped or hurt, but this meta-memory is not shipped at deployment.</p>
+</section>
+<section>
+<h2>Methodology</h2>
+<p>The method follows a train/selection/test protocol.</p>
+<ul>
+<li><strong>Train split:</strong> used to generate rollout evidence and candidate edits.</li>
+<li><strong>Selection split:</strong> used as the acceptance gate for skill updates.</li>
+<li><strong>Test split:</strong> used only for final reporting.</li>
+</ul>
+<p>The main training loop works like this:</p>
+<pre><code>initialize current skill = initial skill
+for each epoch:
+  run rollout batches on training tasks
+  split trajectories into failures and successes
+  reflect over minibatches to propose edits
+  merge and deduplicate edits
+  rank edits and keep only top L_t
+  apply edits to get candidate skill
+  evaluate candidate on held-out selection split
+  if candidate strictly improves score:
+    accept candidate
+  else:
+    store rejected edits as negative feedback
+  optionally perform slow/meta update at epoch end
+return best validation-gated skill</code></pre>
+<p>Important methodological choices:</p>
+<ul>
+<li><strong>Failure and success are analyzed separately.</strong> Failures suggest missing or corrective rules; successes preserve good behaviors.</li>
+<li><strong>Edits are patch-like.</strong> Operations include append, insert, replace, and delete.</li>
+<li><strong>Learning rate becomes edit budget.</strong> Instead of gradient step size, SkillOpt uses <code>L_t</code>, the maximum number of edits allowed at a step.</li>
+<li><strong>Continuity matters.</strong> Small bounded revisions preserve optimization history and reduce destructive rewriting.</li>
+<li><strong>Strict gating prevents silent regression.</strong> Ties are rejected; only strictly better candidate skills survive.</li>
+</ul>
+<p>Default settings reported in the paper include four epochs, rollout batch size 40, reflection minibatch size 8, cosine decay for the edit budget, slow update enabled, and a rejected-edit buffer.</p>
+</section>
+<section>
+<h2>Key Results and Findings</h2>
+<p>The headline result is unusually strong for a no-weight-update method.</p>
+</section>
+<section>
+<h2>Main benchmark results</h2>
+<p>Across 52 evaluated model/benchmark/harness cells, SkillOpt is best or tied-best on all 52.</p>
+<p>For <strong>GPT-5.5 direct chat</strong>, SkillOpt improves:</p>
+<ul>
+<li>SearchQA: <strong>77.7 -&gt; 87.3</strong></li>
+<li>SpreadsheetBench: <strong>41.8 -&gt; 80.7</strong></li>
+<li>OfficeQA: <strong>33.1 -&gt; 72.1</strong></li>
+<li>DocVQA: <strong>78.8 -&gt; 91.2</strong></li>
+<li>LiveMathematicianBench: <strong>37.6 -&gt; 66.9</strong></li>
+<li>ALFWorld: <strong>83.6 -&gt; 95.5</strong></li>
+</ul>
+<p>That is an average <strong>+23.5 point</strong> gain over no skill.</p>
+<p>It also beats the strongest per-cell baseline from human-written skills, one-shot LLM skills, Trace2Skill, TextGrad, GEPA, and EvoSkill by <strong>+5.4 points on average</strong> for GPT-5.5 direct chat.</p>
+</section>
+<section>
+<h2>Harness results</h2>
+<p>SkillOpt also works inside agentic execution loops, not just plain prompting.</p>
+<p>For <strong>GPT-5.5 in Codex</strong>:</p>
+<ul>
+<li>average gain over no skill: <strong>+24.8</strong></li>
+<li>average gain over EvoSkill: <strong>+14.0</strong></li>
+</ul>
+<p>For <strong>GPT-5.5 in Claude Code</strong>:</p>
+<ul>
+<li>average gain over no skill: <strong>+19.1</strong></li>
+<li>average gain over EvoSkill: <strong>+3.2</strong></li>
+</ul>
+<p>This matters because it suggests the method is improving reusable procedure, not just prompt wording for one interface.</p>
+</section>
+<section>
+<h2>Transfer findings</h2>
+<p>Transfer is one of the paper’s most useful engineering results.</p>
+<ul>
+<li><strong>Cross-model:</strong> a SpreadsheetBench skill trained on GPT-5.4 improves GPT-5.4-mini and GPT-5.4-nano.</li>
+<li><strong>Cross-harness:</strong> a spreadsheet skill trained in Codex transfers to Claude Code with <strong>+59.7</strong> points over the Claude Code baseline; the reverse transfer also stays strongly positive.</li>
+<li><strong>Cross-benchmark:</strong> a skill trained on OlympiadBench improves Omni-MATH across three models, with smaller but consistently positive gains.</li>
+</ul>
+<p>No transfer row falls below the target model’s no-skill baseline.</p>
+</section>
+<section>
+<h2>Ablation findings</h2>
+<p>The gains depend most on the controls that make optimization stable:</p>
+<ul>
+<li>bounded textual learning rate,</li>
+<li>validation gate,</li>
+<li>rejected-edit buffer,</li>
+<li>slow/meta update.</li>
+</ul>
+<p>Batch size and schedule matter less than having enough evidence and keeping updates controlled.</p>
+<p>Removing both meta-skill and slow update causes a major drop on SpreadsheetBench, showing that long-horizon consolidation matters.</p>
+</section>
+<section>
+<h2>Practical Applications</h2>
+<p>For engineers building AI agents, this paper suggests a very practical pattern:</p>
+<ul>
+<li>Treat the agent’s procedural instruction file as a versioned artifact that can be trained offline.</li>
+<li>Separate the <strong>runtime model</strong> from the <strong>skill optimizer</strong>. Use a stronger model for training if available, but deploy only the resulting skill text.</li>
+<li>Use task traces, verifier outputs, and tool logs as training evidence.</li>
+<li>Keep updates small and auditable rather than letting the optimizer rewrite everything.</li>
+<li>Validate every candidate skill on held-out tasks before shipping it.</li>
+</ul>
+<p>This is especially applicable for:</p>
+<ul>
+<li>spreadsheet agents,</li>
+<li>coding agents,</li>
+<li>document QA systems,</li>
+<li>enterprise workflow agents,</li>
+<li>embodied or tool-using agents with repeatable tasks.</li>
+</ul>
+<p>A concrete implementation pattern is to keep <code>SKILL.md</code> or <code>best_skill.md</code> as a first-class artifact in the repo, run periodic offline optimization jobs, and promote new skills only after automated evaluation passes.</p>
+</section>
+<section>
+<h2>Limitations and Future Work</h2>
+<p>The paper is strong, but its scope is narrow.</p>
+</section>
+<section>
+<h2>Limitations</h2>
+<ul>
+<li>It relies on <strong>scored trajectories</strong> and a reliable validation signal, so it fits tasks with exact-match metrics, verifiers, or executable checks better than open-ended tasks.</li>
+<li>Training requires extra rollout cost and optimizer-model calls, even though deployment is cheap.</li>
+<li>It optimizes <strong>one portable skill</strong>, not a large multi-skill library.</li>
+<li>Optimized skills may encode heuristics tied to the training distribution, so transfer still needs evaluation.</li>
+</ul>
+</section>
+<section>
+<h2>Future work proposed by the authors</h2>
+<ul>
+<li>skill libraries across multiple domains,</li>
+<li>reuse of optimizer-side meta-skills across benchmarks,</li>
+<li>preference-based or reward-free validation gates for open-ended tasks,</li>
+<li>distilling optimized skills back into model weights.</li>
+</ul>
+</section>
+<section>
+<h2>1. Rollout-and-reflect optimization loop</h2>
+<p>This is the main algorithm. Run tasks, collect evidence, summarize repeated failures and successes, propose edits, validate, and keep only winning updates.</p>
+</section>
+<section>
+<h2>2. Failure-prioritized patch merging</h2>
+<p>Failure minibatches and success minibatches each produce edits. These are merged hierarchically, with corrective edits from failures given priority. This helps the skill fix recurring problems without losing useful behaviors.</p>
+</section>
+<section>
+<h2>3. Bounded edit selection</h2>
+<p>The optimizer ranks proposed edits and clips them to the top <code>L_t</code> edits. This acts like a learning rate in text space: it limits how far the skill can move in one step.</p>
+</section>
+<section>
+<h2>4. Validation-gated acceptance</h2>
+<p>A candidate skill is accepted only when it strictly beats the current one on the selection split. This is the core safeguard against plausible but harmful revisions.</p>
+</section>
+<section>
+<h2>5. Rejected-edit memory</h2>
+<p>Rejected updates are not discarded. They are stored as negative feedback so future optimizer calls can avoid repeating bad ideas.</p>
+</section>
+<section>
+<h2>6. Epoch-wise slow/meta update</h2>
+<p>At the end of an epoch, the optimizer compares previous and current skill versions on the same tasks, then writes more durable guidance into a protected section. This acts like long-term consolidation or momentum.</p>
+</section>
+<section>
+<h2>Connections to Other Work</h2>
+<p>SkillOpt sits at the intersection of several active lines of work.</p>
+</section>
+<section>
+<h2>Agent frameworks and execution loops</h2>
+<p>The paper explicitly evaluates not just direct prompting but also Codex-style and Claude Code-style harnesses. That connects it to work like ReAct, Toolformer, SWE-agent, and other systems where agent performance depends heavily on procedure, tool policy, and verification habits.</p>
+</section>
+<section>
+<h2>Skill learning and procedural memory</h2>
+<p>It builds on recent work framing skills as reusable procedural knowledge, including SkillsBench and surveys of agentic skills. It also relates to Trace2Skill, SkillForge, SkillFoundry, AutoSkill, SkillX, and other systems that derive reusable artifacts from experience. SkillOpt’s distinguishing choice is to optimize one compact skill with strong controls rather than grow a large skill repository.</p>
+</section>
+<section>
+<h2>Prompt optimization and language-as-optimizer methods</h2>
+<p>The paper is closely related to TextGrad, GEPA, Reflexion, and Self-Refine. But it differs in two important ways:</p>
+<ul>
+<li>it focuses on a persistent skill artifact rather than just prompt wording,</li>
+<li>it adds validation-gated, bounded, auditable updates.</li>
+</ul>
+</section>
+<section>
+<h2>Meta-learning analogy</h2>
+<p>The deep-learning analogy is central. The skill document is treated like a trainable state; rollout batches provide evidence; edit budget acts like a learning rate; the held-out gate acts like validation; slow/meta update acts like momentum or longer-horizon consolidation. It is not gradient-based meta-learning, but it borrows the training discipline of meta-learning and optimization.</p>
+</section>
+<section>
+<h2>Engineering Takeaway</h2>
+<p>The most actionable idea in the paper is this: if you cannot or do not want to fine-tune model weights, you can still build a real adaptation pipeline by optimizing a structured skill artifact offline. The win is not just better scores. It is better operational discipline: versioned skills, auditable edits, stable promotion rules, low-cost deployment, and reusable improvements across models and agent runtimes.</p>
+</section>
+</main>
+<footer>Generated by AI Research Paper Applications</footer>
+</div>
+</body>
+</html>

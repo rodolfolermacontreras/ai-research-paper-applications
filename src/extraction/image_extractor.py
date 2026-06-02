@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import fitz
@@ -10,7 +11,13 @@ from extraction.models import Figure
 
 
 def extract_images(pdf_path: str | Path, output_dir: str | Path) -> list[Figure]:
-    """Extract embedded images from a PDF and save them to disk."""
+    """Extract embedded images from a PDF and save them to disk.
+
+    Uses two strategies:
+    1. Extract raster images via ``get_images()``.
+    2. For pages with vector-drawn figures but no raster images, render the
+       page region as a PNG using ``get_pixmap()``.
+    """
 
     pdf = Path(pdf_path)
     destination = Path(output_dir)
@@ -19,7 +26,9 @@ def extract_images(pdf_path: str | Path, output_dir: str | Path) -> list[Figure]
     document = fitz.open(pdf)
     paper_id = _slugify(pdf.stem)
     figures: list[Figure] = []
+    pages_with_raster: set[int] = set()
 
+    # Strategy 1: raster image extraction
     for page_index in range(document.page_count):
         page = document[page_index]
         page_number = page_index + 1
@@ -52,8 +61,46 @@ def extract_images(pdf_path: str | Path, output_dir: str | Path) -> list[Figure]
                         bbox=(float(rect.x0), float(rect.y0), float(rect.x1), float(rect.y1)),
                     )
                 )
+                pages_with_raster.add(page_number)
+
+    # Strategy 2: render pages that have vector figures but no raster images
+    for page_index in range(document.page_count):
+        page = document[page_index]
+        page_number = page_index + 1
+        if page_number in pages_with_raster:
+            continue
+
+        if not _page_has_vector_figures(page):
+            continue
+
+        pixmap = page.get_pixmap(dpi=200)
+        file_name = f"{paper_id}_page_{page_number:03d}_rendered.png"
+        image_path = destination / file_name
+        pixmap.save(str(image_path))
+        figures.append(
+            Figure(
+                file_path=str(image_path),
+                page_number=page_number,
+                width=pixmap.width,
+                height=pixmap.height,
+                bbox=(0.0, 0.0, float(page.rect.width), float(page.rect.height)),
+                caption=f"Rendered page {page_number} (contains vector figures)",
+            )
+        )
 
     return figures
+
+
+_FIGURE_LABEL_RE = re.compile(r"\b(?:Figure|Fig\.)\s+\d", re.IGNORECASE)
+
+
+def _page_has_vector_figures(page: fitz.Page) -> bool:
+    """Return True if the page likely contains a vector-drawn figure."""
+    text = page.get_text()
+    has_figure_label = bool(_FIGURE_LABEL_RE.search(text))
+    drawings = page.get_drawings()
+    has_many_drawings = len(drawings) >= 20
+    return has_figure_label or has_many_drawings
 
 
 def _slugify(value: str) -> str:

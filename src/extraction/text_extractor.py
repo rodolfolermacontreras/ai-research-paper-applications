@@ -225,14 +225,101 @@ def _is_heading(block: _TextBlock, median_size: float, upper_size: float) -> boo
     if text.endswith((".", ";", ":")) and not text.lower().startswith(("abstract", "keywords")):
         return False
 
-    numbered = bool(np.re_match(r"^(?:\d+(?:\.\d+)*|[IVX]+)\s+", text)) if hasattr(np, "re_match") else False
-    numbered = numbered or bool(__import__("re").match(r"^(?:\d+(?:\.\d+)*|[IVX]+)\s+", text))
-    title_case = text == text.title()
-    all_caps = text.isupper() and len(words) <= 10
-    prominent = block.font_size >= upper_size or block.font_size >= median_size + 1.2
-    bold = block.bold_ratio >= 0.45
+    # Reject common false positives: affiliations, emails, equations, bare numbers
+    if _is_false_positive_heading(text):
+        return False
 
-    return numbered or all_caps or ((prominent or bold) and (title_case or len(words) <= 8))
+    numbered = bool(_RE.match(r"^(?:\d+(?:\.\d+)*|[IVX]+)\s+\S", text))
+    title_case = text == text.title() and len(words) >= 2
+    all_caps = text.isupper() and 2 <= len(words) <= 10
+    prominent = block.font_size >= upper_size + 0.5 or block.font_size >= median_size + 2.0
+    bold = block.bold_ratio >= 0.6
+
+    if numbered and len(words) >= 2:
+        return True
+    if all_caps:
+        return True
+    if prominent and (title_case or (bold and len(words) <= 8)):
+        return True
+    if bold and title_case and len(words) >= 2:
+        return True
+
+    return False
+
+
+_RE = __import__("re")
+
+_AFFILIATION_PATTERN = _RE.compile(
+    r"\b(?:university|institute|department|school|laboratory|lab|college|center|"
+    r"centre|hospital|faculty|division|group|inc\.|corp\.|ltd\.)\b",
+    _RE.IGNORECASE,
+)
+
+_EQUATION_PATTERN = _RE.compile(
+    r"[∂∇∑∏∫≤≥≠≈∈∉⊂⊃⊆⊇∀∃∧∨⊕⊗←→↔⟨⟩‖≜△▽]|"
+    r"\b[A-Za-z]\s*[=<>≤≥]\s*\d|"
+    r"\(\d+\)\s*$|"
+    r"\\(?:frac|sum|int|partial|nabla|left|right)\b",
+)
+
+_AXIS_LABEL_PATTERN = _RE.compile(
+    r"^\d[\d\s.,×]+\d|"  # sequences of numbers (axis ticks)
+    r"^\d+(?:\.\d+)?\s*(?:dB|%|×|k\b|ms\b|Hz\b)|"  # measurements
+    r"^(?:0\.\d|[12]\.\d)\s",  # decimal-start labels
+)
+
+_MATH_HEAVY_PATTERN = _RE.compile(
+    r"[−×·±∗⊤⊥∥≜]|"  # Unicode math operators
+    r"\bX\b.*\bX\b|"  # repeated math variables
+    r"[A-Z]\d.*[A-Z]\d|"  # variable-number patterns like A0, B1
+    r"\|[^|]+\||"  # absolute value bars
+    r"\{[^}]+\}",  # set notation
+)
+
+
+def _is_false_positive_heading(text: str) -> bool:
+    words = text.split()
+    # Bare numbers or single characters
+    if len(words) <= 1 and text.lower() not in {
+        "abstract", "introduction", "conclusion", "references",
+        "acknowledgments", "acknowledgements", "appendix", "bibliography",
+        "methods", "results", "discussion", "background",
+    }:
+        return True
+    # Two-word fragments where all words are single characters (e.g. "Z T", "= Z")
+    if len(words) <= 2 and all(len(w) <= 2 for w in words):
+        return True
+    # Starts with = or other operators
+    if text.lstrip().startswith(("=", "+", "-", "/", "<", ">")):
+        return True
+    # Affiliations
+    if _AFFILIATION_PATTERN.search(text):
+        return True
+    # Equations or math-heavy strings
+    if _EQUATION_PATTERN.search(text):
+        return True
+    # Math-heavy content
+    if _MATH_HEAVY_PATTERN.search(text):
+        return True
+    # Axis labels and measurements
+    if _AXIS_LABEL_PATTERN.match(text):
+        return True
+    # Figure/table captions
+    if _RE.match(r"^(?:Figure|Fig\.|Table)\s+\d", text, _RE.IGNORECASE):
+        return True
+    # Author names with markers (asterisks, daggers)
+    if _RE.search(r"[∗†‡]", text) and len(words) <= 6:
+        return True
+    # Text that is mostly numbers
+    digit_chars = sum(1 for c in text if c.isdigit() or c in ".,")
+    alpha_chars = sum(1 for c in text if c.isalpha())
+    if alpha_chars > 0 and digit_chars / (alpha_chars + digit_chars) > 0.5:
+        return True
+    # Chart annotation patterns (short text with > or comparison words)
+    if len(words) <= 4 and _RE.search(r"\b(?:vs|>|<)\b", text):
+        return True
+    return False
+
 
 
 def _heading_level(font_size: float, upper_size: float) -> int:

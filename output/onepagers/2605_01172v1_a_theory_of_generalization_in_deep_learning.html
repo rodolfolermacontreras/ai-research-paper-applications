@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Theory of Generalization in Deep Learning</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --accent: #2b6cb0;
+  --bg: #f7fafc;
+  --card-bg: #ffffff;
+  --text: #2d3748;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --code-bg: #edf2f7;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  padding: 2rem 1rem;
+}
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+}
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 2rem 2.5rem;
+  border-radius: 12px 12px 0 0;
+}
+header h1 {
+  font-size: 1.65rem;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+header .meta {
+  font-size: 0.92rem;
+  opacity: 0.85;
+}
+main {
+  background: var(--card-bg);
+  padding: 2rem 2.5rem;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+section {
+  margin-bottom: 1.8rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+h2 {
+  color: var(--accent);
+  font-size: 1.2rem;
+  margin-bottom: 0.7rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+p { margin-bottom: 0.8rem; }
+ul { margin: 0.5rem 0 1rem 1.5rem; }
+li { margin-bottom: 0.4rem; }
+blockquote {
+  background: var(--code-bg);
+  border-left: 4px solid var(--accent);
+  padding: 0.8rem 1.2rem;
+  margin: 0.8rem 0;
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin-bottom: 0; }
+pre {
+  background: #1a202c;
+  color: #e2e8f0;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  margin: 0.8rem 0;
+}
+code {
+  background: var(--code-bg);
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+pre code {
+  background: transparent;
+  padding: 0;
+}
+strong { color: var(--primary); }
+.abstract blockquote {
+  font-style: italic;
+  font-size: 0.95rem;
+}
+footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+@media print {
+  body { padding: 0; }
+  header { border-radius: 0; }
+  main { box-shadow: none; border-radius: 0; }
+  section { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>A Theory of Generalization in Deep Learning</h1>
+  <div class="meta">Elon Litman, Gabe Guo -- arXiv preprint, May 2026</div>
+</header>
+<main>
+<section class="abstract">
+<h2>Abstract</h2>
+<blockquote><p>We present a non-asymptotic theory of generalization in deep learning where the empirical neural tangent kernel partitions the output space. In directions corresponding to signal, error dissipates rapidly; in the vast orthogonal dimensions corresponding to noise, the kernel’s near-zero eigenvalues trap residual error in a test-invisible reservoir. Within the signal channel, minibatch SGD ensures that coherent population signal accumulates via fast linear drift, while idiosyncratic memorization is suppressed into a slow, diffusive random walk. We prove generalization survives even when the kernel evolves O(1) in operator norm, the full feature-learning regime. This theory naturally explains disparate phenomena in deep learning theory, such as benign overfitting, double descent, implicit bias, and grokking. Lastly, we derive an exact population-risk objective from a single training run with no validation data, for any architecture, loss, or optimizer, and prove that it measures precisely the noise in the signal channel. This objective reduces in practice to an SNR preconditioner on top of Adam, adding one state vector at no extra cost; it accelerates grokking by 5×, suppresses memorization in PINNs and implicit neural representations, and improves DPO fine-tuning under noisy preferences while staying 3× closer to the reference policy.</p></blockquote>
+</section>
+<section>
+<h2>Key Contributions</h2>
+<ul>
+<li>Proposes a non-asymptotic generalization theory that works in the <strong>full feature-learning regime</strong>, not just the lazy or frozen-NTK regime.</li>
+<li>Introduces a clean geometric split of training dynamics into a <strong>signal channel</strong> and a <strong>reservoir</strong> using the cumulative empirical tangent kernel.</li>
+<li>Shows that errors trapped in the reservoir are <strong>invisible to test predictions</strong>, which gives a concrete explanation for why networks can memorize noise without necessarily hurting generalization.</li>
+<li>Proves a <strong>drift-versus-diffusion</strong> story for minibatch SGD: true population signal accumulates coherently, while memorization noise behaves more like a random walk and grows much more slowly.</li>
+<li>Derives an <strong>exact train-test coupling result</strong> under squared loss along the realized training path, even when the kernel changes substantially during training.</li>
+<li>Turns the theory into a practical <strong>population-risk objective</strong> that can be estimated from one training run with no validation set.</li>
+<li>Shows this objective reduces to a simple <strong>SNR-style per-parameter gate</strong> on top of Adam/AdamW.</li>
+<li>Uses the framework to unify several major phenomena: <strong>benign overfitting, double descent, implicit bias, and grokking</strong>.</li>
+</ul>
+</section>
+<section>
+<h2>Core Concepts Explained</h2>
+<p>The paper’s core claim is that deep nets generalize because training does not treat all output directions equally. Some directions correspond to reusable structure in the data; others correspond to sample-specific junk. The empirical neural tangent kernel tells us which directions the optimizer can actually move along during the trajectory.</p>
+<p>The authors integrate that kernel over time and call the result the <strong>cumulative dissipation operator</strong>. This operator partitions output space into two parts:</p>
+<ul>
+<li><strong>Signal channel:</strong> directions where training actually dissipated loss in a way that can transfer to test examples.</li>
+<li><strong>Reservoir:</strong> directions where residual fitting can remain, but that do not couple to test predictions.</li>
+</ul>
+<p>A useful engineering interpretation is this: the network can overfit the training set in some coordinates that never matter for out-of-sample behavior. That is the paper’s explanation for why interpolation is not automatically fatal.</p>
+<p>The second big idea is about SGD noise. In minibatch training, the average gradient contains a coherent component and a noisy component. The paper argues that:</p>
+<ul>
+<li>the coherent part aligned with population signal builds up <strong>linearly over training time</strong>, while</li>
+<li>the noisy part behaves diffusively, more like accumulated variance than directed progress.</li>
+</ul>
+<p>So even inside the signal channel, useful structure wins over memorization if training is allowed to integrate enough consistent signal.</p>
+<p>The third big idea is that <strong>training motion predicts test motion</strong>. Under squared loss, the paper shows that once you look through the right operator, the change in test predictions is determined exactly by the change in training predictions along the actual path taken by optimization. This is important because many NTK-style arguments become fragile once features move a lot. Here, the authors claim the coupling still works even when the empirical kernel drifts by O(1), which is meant to cover realistic deep learning rather than just infinitely wide lazy training.</p>
+<p>Finally, they convert the theory into an optimizer rule. Instead of updating every parameter equally according to empirical risk, they propose updating parameters only when the <strong>squared mean gradient</strong> is larger than a minibatch-noise threshold. In plain terms: if a parameter’s update looks like stable signal rather than batch noise, keep it; otherwise suppress it.</p>
+</section>
+<section>
+<h2>Methodology</h2>
+<p>The paper combines theory and experiments.</p>
+<p>On the theory side, it works in <strong>output space</strong> rather than parameter space. The setup defines stacked train outputs, their Jacobian with respect to parameters, and the empirical tangent kernel:</p>
+<pre><code>K_SS(w) = J_S(w) J_S(w)^T</code></pre>
+<p>From the evolving kernel along training, the authors define a time-integrated operator <code>W_S(s, T)</code> that measures how much loss was actually dissipated along each output direction. They then analyze:</p>
+<p>1. <strong>Reservoir invisibility:</strong> prove that directions in <code>ker(W_S)</code> do not affect any test prediction through the test-transfer operator. 2. <strong>SGD drift-diffusion separation:</strong> decompose minibatch gradients into conditional mean plus centered noise, then show the mean accumulates faster than diffusion on true signal directions. 3. <strong>Train-test coupling:</strong> show that, for squared loss, train displacement and test displacement factor through the same dissipation geometry, yielding an exact predictor of test motion from training motion. 4. <strong>Population-risk estimation:</strong> use exchangeability and leave-one-out style reasoning to derive an unbiased first-order estimate of population-risk decrease from a training batch. 5. <strong>Optimizer design:</strong> collapse that estimate into a parameter-space objective and derive a diagonal rule that becomes a gated Adam/AdamW update.</p>
+<p>On the empirical side, they test the resulting update rule in three settings chosen because memorization and delayed generalization are known problems:</p>
+<ul>
+<li>a noisy-initial-condition <strong>physics-informed neural network (PINN)</strong>,</li>
+<li><strong>grokking</strong> on modular division with a small transformer,</li>
+<li><strong>DPO fine-tuning</strong> of Qwen2.5-0.5B-Instruct under noisy preference labels.</li>
+</ul>
+<p>The comparisons keep architecture and most hyperparameters fixed, changing only the update rule.</p>
+</section>
+<section>
+<h2>Key Results and Findings</h2>
+<p>The paper makes both conceptual and empirical claims.</p>
+<p>First, it claims that the generalization gap can be decomposed into a small number of interpretable pieces. The important practical takeaway is that <strong>noise in the reservoir does not hurt test performance</strong>, while <strong>noise in the signal channel is the main thing to fight</strong>. This is the paper’s unified explanation for several otherwise disconnected phenomena.</p>
+<p>Second, the paper reports strong evidence for train-test coupling under feature learning. In one figure, the predicted test motion from observed training motion reaches <strong>correlation 0.991</strong> with <strong>relative error 0.165</strong>, even though the empirical tangent kernel drifts far from its initialization. They report kernel drift peaking around <strong>4.8×</strong> and ending around <strong>2.4×</strong>, which they use to argue the result is well outside the lazy-training regime.</p>
+<p>Third, the optimizer derived from the theory appears useful in practice:</p>
+<ul>
+<li><strong>PINN with noisy initial condition:</strong> reaches relative <code>L2 &lt;= 0.40</code> in <strong>2.4× fewer iterations</strong> than the best tuned AdamW baseline.</li>
+<li><strong>Grokking on modular division:</strong> reaches <strong>95% held-out accuracy at step 5,950</strong> vs <strong>29,450</strong> for AdamW, about <strong>4.9× faster</strong>.</li>
+<li><strong>Noisy DPO fine-tuning:</strong> improves reward accuracy from <strong>0.566 to 0.641</strong> while staying about <strong>3.05× closer</strong> to the reference policy in reward drift.</li>
+</ul>
+<p>These results matter because they are not just accuracy improvements; they target a recurring engineering pain point: models fitting noisy or shortcut-like structure before they learn the intended rule.</p>
+</section>
+<section>
+<h2>Practical Applications</h2>
+<p>For ML engineers, the paper is most useful as a way to reason about <strong>which gradients are likely to transfer</strong> and which are just memorization.</p>
+<p>Potential applications include:</p>
+<ul>
+<li><strong>Noisy-label training:</strong> the SNR-style gate could help when training data contains annotation noise, weak supervision, or synthetic labels.</li>
+<li><strong>Preference optimization and RLHF-style tuning:</strong> the DPO result suggests the method may reduce overreaction to noisy preferences while preserving closeness to a base model.</li>
+<li><strong>Physics-informed models and implicit neural representations:</strong> useful when the training signal contains structured noise or stiff optimization dynamics.</li>
+<li><strong>Grokking-like problems:</strong> tasks where models memorize first and generalize later may benefit from suppressing parameter updates dominated by variance.</li>
+<li><strong>Adaptive optimizers:</strong> the proposed rule is easy to interpret as a drop-in modification to Adam/AdamW using one extra state vector.</li>
+<li><strong>Debugging overfitting:</strong> the signal-channel versus reservoir lens gives a more actionable story than generic “capacity is too high.” It suggests the real issue is whether harmful noise is landing in test-visible directions.</li>
+</ul>
+<p>A practical mental model is: if you already use Adam, gradient clipping, EMA statistics, and batch-based heuristics, this paper gives a theory-backed way to turn those ideas into a <strong>population-risk-aware update filter</strong>.</p>
+</section>
+<section>
+<h2>Limitations and Future Work</h2>
+<p>The paper is ambitious, but there are clear boundaries.</p>
+<ul>
+<li>Some of the cleanest results, especially the exact train-test coupling, are stated under <strong>squared loss</strong> or constant output Hessian assumptions. Extending the same exactness to modern cross-entropy training is less direct.</li>
+<li>The analysis assumes the network output is <strong>twice differentiable</strong> in the parameters and uses path-dependent operator constructions that may be expensive to estimate exactly in large production models.</li>
+<li>Parts of the SGD argument rely on <strong>i.i.d. sampling, exchangeability, minibatch independence</strong>, or a <strong>replace-two stability</strong> condition. Those assumptions may weaken in multi-epoch reuse, curriculum learning, or highly correlated data streams.</li>
+<li>The optimizer result is first-order and is presented mainly for a <strong>diagonal preconditioner</strong>, which is practical but leaves open whether richer structured preconditioners could work better.</li>
+<li>The experiments are promising but still relatively narrow: one PINN setup, one grokking benchmark, and one small-model DPO case. More large-scale supervised and language-model pretraining evidence would make the claims stronger.</li>
+<li>The theory explains when memorization can be harmless, but it does not remove the need for standard engineering controls like good data curation, robust evaluation, and validation on real downstream tasks.</li>
+</ul>
+<p>Natural future directions include extending the population-risk update to larger LLM fine-tuning stacks, testing it on noisy web-scale supervision, and turning the signal-channel diagnostics into tools for training monitoring.</p>
+</section>
+<section>
+<h2>Key Equations/Algorithms</h2>
+<p>The most important objects are easy to summarize in plain language.</p>
+<pre><code>K_SS(w) = J_S(w) J_S(w)^T</code></pre>
+<p>This is the empirical tangent kernel on the training set. It tells you which output directions are reachable from the current parameters.</p>
+<pre><code>W_S(s, T) = integral over time of propagated K_SS</code></pre>
+<p>This is the cumulative dissipation operator. It measures where training actually spent effort reducing loss over the whole trajectory. Its range is the signal channel; its kernel is the reservoir.</p>
+<pre><code>U_Q(T) - U_Q(s) = -G_Q(T, s) g(s)</code></pre>
+<p>This links the current output gradient to how test predictions move over a training window.</p>
+<pre><code>U_Q(T) - U_Q(s) = A* ( U_S(T) - U_S(s) )</code></pre>
+<p>Under squared loss, this is the train-test coupling result. Test movement can be predicted from training movement using the optimal linear operator <code>A*</code> along the realized path.</p>
+<pre><code>test error = bias + signal-channel variance + reservoir term</code></pre>
+<p>The key simplification is that the reservoir term vanishes at test, so the remaining danger is noise that survives in the signal channel.</p>
+<pre><code>update parameter k only if  mu_k^2 &gt; sigma_k^2 / (b - 1)</code></pre>
+<p>This is the actionable optimizer rule. <code>mu_k</code> is the minibatch mean gradient for parameter <code>k</code>, <code>sigma_k^2</code> is its minibatch variance, and <code>b</code> is batch size. Intuitively, only update when signal beats noise.</p>
+<p>For engineers, that rule is the paper’s main algorithmic output.</p>
+</section>
+<section>
+<h2>Connections to Other Work</h2>
+<p>This paper sits at the intersection of several major threads in ML theory.</p>
+<ul>
+<li><strong>NTK and lazy training:</strong> it keeps the NTK viewpoint but tries to escape the unrealistic frozen-kernel assumption. The key claim is that the right output-space operators remain useful even when features move substantially.</li>
+<li><strong>Benign overfitting and double descent:</strong> the paper provides a mechanism for why interpolation can still generalize: some fitted noise ends up in test-invisible directions.</li>
+<li><strong>Implicit bias:</strong> the spectral structure of the cumulative dissipation operator acts like a schedule for which directions get learned first.</li>
+<li><strong>Grokking:</strong> the paper interprets grokking as signal gradually migrating from the reservoir into the signal channel as the kernel evolves.</li>
+<li><strong>Influence functions and leave-one-out:</strong> the population-risk objective is closely related to influence estimation, but framed along the realized training path rather than as a local Hessian approximation at the end of training.</li>
+<li><strong>Classical generalization theory:</strong> it positions itself as an alternative to loose worst-case uniform-convergence, stability, and PAC-Bayes stories by using path-dependent, data-dependent output-space quantities.</li>
+</ul>
+<p>In the broader landscape, the paper is trying to do something valuable: bridge theory and optimizer design. Instead of stopping at an explanation of why deep nets might generalize, it produces a concrete training rule. Whether every theorem survives broader empirical stress tests remains to be seen, but the paper is notable because it gives practitioners a usable conceptual model:</p>
+<ul>
+<li>some fitted directions transfer,</li>
+<li>some do not,</li>
+<li>SGD already helps separate them,</li>
+<li>and the optimizer can be nudged to prefer the transferable ones.</li>
+</ul>
+<p>That makes the work especially relevant for engineers dealing with noisy data, overparameterized models, and fine-tuning regimes where memorization is cheap but robust generalization is hard.</p>
+</section>
+</main>
+<footer>Generated by AI Research Paper Applications</footer>
+</div>
+</body>
+</html>
