@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import streamlit as st
@@ -26,12 +28,13 @@ def render() -> None:
         dest = PAPERS_DIR / uploaded_file.name
         if dest.exists():
             st.warning(f"A paper named **{uploaded_file.name}** already exists in the library.")
+            if st.button("Re-analyze this paper"):
+                _run_analysis(dest)
         else:
             with open(dest, "wb") as fh:
                 fh.write(uploaded_file.getbuffer())
             st.success(f"Uploaded **{uploaded_file.name}** successfully.")
-
-        if st.button("Analyze this paper now"):
+            st.info("Starting automatic analysis...")
             _run_analysis(dest)
 
     st.markdown("---")
@@ -43,7 +46,7 @@ def render() -> None:
 
 
 def _run_analysis(paper_path: Path) -> None:
-    import sys, os
+    import sys
 
     src_dir = Path(__file__).resolve().parents[2]
     if str(src_dir) not in sys.path:
@@ -60,5 +63,28 @@ def _run_analysis(paper_path: Path) -> None:
                 f"{len(result.figures)} figures, {len(result.tables)} tables, "
                 f"{len(result.code_blocks)} code blocks, {len(result.references)} references."
             )
+            
+            wiki_rebuilt = _rebuild_wiki_if_needed()
+            if wiki_rebuilt:
+                st.info("Wiki updated with new paper.")
+            
         except Exception as exc:
             st.error(f"Analysis failed: {exc}")
+
+
+def _rebuild_wiki_if_needed() -> bool:
+    """Rebuild the wiki after successful analysis."""
+    try:
+        import subprocess
+        from streamlit_app.utils import PROJECT_ROOT
+        
+        result = subprocess.run(
+            [sys.executable, "-m", "wiki.builder"],
+            cwd=str(PROJECT_ROOT / "src"),
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False

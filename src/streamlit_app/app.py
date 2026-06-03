@@ -10,13 +10,14 @@ SRC_DIR = Path(__file__).resolve().parent.parent
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from streamlit_app.pages import code_apps, library, paper_detail, upload, wiki
+from streamlit_app.pages import code_apps, library, paper_detail, search, upload, wiki
 from streamlit_app.utils import ensure_directories
 
 PageRenderer = Callable[[], None]
 PAGES: dict[str, PageRenderer] = {
     "Upload Paper": upload.render,
     "Paper Library": library.render,
+    "Search": search.render,
     "Paper Detail": paper_detail.render,
     "Wiki / Knowledge Base": wiki.render,
     "Code Applications": code_apps.render,
