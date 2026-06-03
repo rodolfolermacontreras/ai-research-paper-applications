@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 from sklearn.datasets import make_friedman1
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -31,12 +32,21 @@ def main() -> None:
     monitor = TrainingMonitor()
     epochs = 260
     learning_rate = 0.035
+    batch_size = 16
+    rng = np.random.default_rng(19)
+    n_train = len(X_train)
 
     for epoch in range(1, epochs + 1):
         train_loss, gradients = model.loss_and_gradients(X_train, y_train)
         model.step(gradients, lr=learning_rate)
         if epoch == 1 or epoch % 5 == 0:
-            monitor.log(epoch, model, X_train, y_train, X_test, y_test, gradients)
+            # Collect several minibatch gradients for SNR estimation
+            mini_grads = []
+            for _ in range(4):
+                idx = rng.choice(n_train, size=min(batch_size, n_train), replace=False)
+                _, mg = model.loss_and_gradients(X_train[idx], y_train[idx])
+                mini_grads.append(mg)
+            monitor.log(epoch, model, X_train, y_train, X_test, y_test, gradients, mini_grads)
         if epoch == 1 or epoch % 40 == 0:
             print(f"epoch={epoch:3d} train_loss={train_loss:.5f}")
 
@@ -47,6 +57,7 @@ def main() -> None:
     print(f"- final test loss: {summary['test_loss']:.5f}")
     print(f"- final gap: {summary['generalization_gap']:.5f}")
     print(f"- final effective dimension: {summary['effective_dimension']:.3f}")
+    print(f"- final gradient SNR: {summary['gradient_snr']:.4f}")
     print(f"- saved metrics: {csv_path}")
     print(f"- saved figure: {figure_path}")
 

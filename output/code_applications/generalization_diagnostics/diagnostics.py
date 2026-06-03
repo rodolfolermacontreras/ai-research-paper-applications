@@ -315,6 +315,157 @@ def plot_diagnostics(
     return image_path
 
 
+def simulate_drift_diffusion(
+    model: SimpleMLPRegressor,
+    X_train: np.ndarray,
+    y_clean: np.ndarray,
+    y_noisy: np.ndarray,
+    n_steps: int = 200,
+    batch_size: int = 16,
+    seed: int = 42,
+) -> dict[str, np.ndarray]:
+    """Simulate the drift-diffusion decomposition from the paper.
+
+    For each step, split the minibatch gradient into:
+    - drift: the mean gradient evaluated on the clean signal targets
+    - diffusion: the deviation when targets are noisy vs. clean
+
+    The paper predicts that accumulated drift grows as O(T) while accumulated
+    diffusion grows as O(sqrt(T)), so the signal-to-noise ratio improves as
+    the square root of the number of training steps.
+
+    Args:
+        model: A trained or freshly initialized SimpleMLPRegressor.
+        X_train: Training inputs.
+        y_clean: Clean (noiseless) target values.
+        y_noisy: Observed (noisy) target values.
+        n_steps: Number of simulated gradient steps.
+        batch_size: Minibatch size for the simulation.
+        seed: Random seed for reproducible minibatch sampling.
+
+    Returns:
+        A dictionary with arrays for each step tracking:
+        - 'step': step indices
+        - 'drift_norm': cumulative drift norm at each step
+        - 'diffusion_norm': cumulative diffusion norm at each step
+        - 'snr': drift_norm / (diffusion_norm + eps)
+        - 'gradient_snr_per_step': per-step ratio of mean^2 to variance
+    """
+    rng = np.random.default_rng(seed)
+    n = len(X_train)
+    cumulative_drift = np.zeros(model.parameter_vector().size)
+    cumulative_diffusion = np.zeros(model.parameter_vector().size)
+
+    steps = []
+    drift_norms: list[float] = []
+    diffusion_norms: list[float] = []
+    snr_values: list[float] = []
+    per_step_snr: list[float] = []
+
+    for step in range(1, n_steps + 1):
+        idx = rng.choice(n, size=min(batch_size, n), replace=False)
+        X_batch = X_train[idx]
+        y_clean_batch = y_clean[idx]
+        y_noisy_batch = y_noisy[idx]
+
+        _, grad_clean = model.loss_and_gradients(X_batch, y_clean_batch)
+        _, grad_noisy = model.loss_and_gradients(X_batch, y_noisy_batch)
+
+        def _flatten(g: dict[str, Any]) -> np.ndarray:
+            return np.concatenate(
+                [
+                    np.asarray(g["W1"]).ravel(),
+                    np.asarray(g["b1"]).ravel(),
+                    np.asarray(g["W2"]).ravel(),
+                    np.array([float(g["b2"])]),
+                ]
+            )
+
+        flat_clean = _flatten(grad_clean)
+        flat_noisy = _flatten(grad_noisy)
+
+        # drift: the clean-signal gradient (population signal direction)
+        cumulative_drift += flat_clean
+        # diffusion: the excess from noise (noisy - clean)
+        cumulative_diffusion += flat_noisy - flat_clean
+
+        drift_norm = float(np.linalg.norm(cumulative_drift))
+        diffusion_norm = float(np.linalg.norm(cumulative_diffusion))
+
+        # per-step SNR: (mean gradient)^2 / variance proxy
+        # approximate variance as the squared deviation from clean gradient
+        noise_vec = flat_noisy - flat_clean
+        mean_sq = float(np.mean(flat_clean**2))
+        noise_sq = float(np.mean(noise_vec**2))
+        step_snr = mean_sq / (noise_sq + 1e-12)
+
+        steps.append(step)
+        drift_norms.append(drift_norm)
+        diffusion_norms.append(diffusion_norm)
+        snr_values.append(drift_norm / (diffusion_norm + 1e-12))
+        per_step_snr.append(step_snr)
+
+    return {
+        "step": np.array(steps),
+        "drift_norm": np.array(drift_norms),
+        "diffusion_norm": np.array(diffusion_norms),
+        "snr": np.array(snr_values),
+        "gradient_snr_per_step": np.array(per_step_snr),
+    }
+
+
+def plot_drift_diffusion(
+    drift_diffusion_result: dict[str, np.ndarray],
+    output_dir: str | Path,
+) -> Path:
+    """Save a figure illustrating the drift-diffusion decomposition.
+
+    Shows that drift (signal) accumulates faster than diffusion (noise),
+    reproducing the key intuition from the paper: the SNR ratio improves
+    as training progresses.
+
+    Args:
+        drift_diffusion_result: Output from simulate_drift_diffusion.
+        output_dir: Directory to write the figure into.
+
+    Returns:
+        Path to the saved figure.
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    steps = drift_diffusion_result["step"]
+    drift = drift_diffusion_result["drift_norm"]
+    diffusion = drift_diffusion_result["diffusion_norm"]
+    snr = drift_diffusion_result["snr"]
+
+    figure, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    axes[0].plot(steps, drift, label="cumulative drift (signal)", linewidth=2, color="#4C78A8")
+    axes[0].plot(steps, diffusion, label="cumulative diffusion (noise)", linewidth=2, color="#E45756")
+    sqrt_t = np.sqrt(steps) * (diffusion[-1] / np.sqrt(steps[-1]) + 1e-8)
+    axes[0].plot(steps, sqrt_t, "--", label="sqrt(T) reference", linewidth=1, color="gray", alpha=0.7)
+    axes[0].set_title("Drift vs. Diffusion accumulation")
+    axes[0].set_xlabel("Training step")
+    axes[0].set_ylabel("Cumulative L2 norm")
+    axes[0].legend()
+    axes[0].set_yscale("log")
+
+    axes[1].plot(steps, snr, color="#54A24B", linewidth=2)
+    axes[1].axhline(y=1.0, linestyle="--", color="gray", alpha=0.7, label="SNR = 1 threshold")
+    axes[1].set_title("Signal-to-noise ratio over training")
+    axes[1].set_xlabel("Training step")
+    axes[1].set_ylabel("Drift / Diffusion")
+    axes[1].legend()
+
+    figure.suptitle("Minibatch Drift-Diffusion Decomposition (paper Section 4)")
+    figure.tight_layout()
+    out_path = output_path / "drift_diffusion.png"
+    figure.savefig(out_path, dpi=160, bbox_inches="tight")
+    plt.close(figure)
+    return out_path
+
+
 __all__ = [
     "GeneralizationReport",
     "SimpleMLPRegressor",
@@ -323,6 +474,8 @@ __all__ = [
     "effective_dimension",
     "make_sinusoidal_dataset",
     "plot_diagnostics",
+    "plot_drift_diffusion",
+    "simulate_drift_diffusion",
     "spectral_signal_noise_decomposition",
 ]
 
