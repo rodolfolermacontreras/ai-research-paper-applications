@@ -87,6 +87,45 @@ def summarize_scores(frame: pd.DataFrame) -> pd.Series:
     return frame.groupby("task_type")["score"].mean().sort_index()
 
 
+def print_iteration_report(history_frame: pd.DataFrame, baseline_scores: pd.Series, improved_scores: pd.Series) -> None:
+    """Print a human-readable per-epoch optimization report to stdout.
+
+    Shows accepted and rejected steps, final score deltas, and a summary
+    line per task type -- mirroring the epoch-wise reporting a real
+    SkillOpt loop would produce.
+    """
+    print()
+    print("=== Optimization history by epoch and task type ===")
+    for epoch in sorted(history_frame["epoch"].unique()):
+        epoch_rows = history_frame[history_frame["epoch"] == epoch]
+        accepted = epoch_rows[epoch_rows["accepted"]]
+        rejected = epoch_rows[~epoch_rows["accepted"]]
+        print(f"\n-- Epoch {epoch} --")
+        if accepted.empty:
+            print("  Accepted edits: none")
+        else:
+            for _, row in accepted.iterrows():
+                chain_str = " -> ".join(row["candidate_chain"])
+                print(f"  ACCEPTED  [{row['task_type']}]  chain={chain_str}")
+                print(f"            train_score={row['train_score']:.3f}  val_score={row['validation_score']:.3f}")
+        if not rejected.empty:
+            for _, row in rejected.iterrows():
+                chain_str = " -> ".join(row["candidate_chain"])
+                print(f"  rejected  [{row['task_type']}]  chain={chain_str}")
+                print(f"            train_score={row['train_score']:.3f}  val_score={row['validation_score']:.3f}")
+
+    print()
+    print("=== Final delta (baseline -> improved) ===")
+    all_types = sorted(set(baseline_scores.index) | set(improved_scores.index))
+    for task_type in all_types:
+        base = baseline_scores.get(task_type, 0.0)
+        impr = improved_scores.get(task_type, 0.0)
+        delta = impr - base
+        direction = "+" if delta >= 0 else ""
+        print(f"  {task_type:<12}  {base:.3f} -> {impr:.3f}  ({direction}{delta:.3f})")
+    print()
+
+
 def main() -> None:
     """Run the skill evolution demo and save a before/after comparison plot."""
     app_dir = Path(__file__).resolve().parent
@@ -116,6 +155,8 @@ def main() -> None:
 
     history_path = output_dir / "optimization_history.json"
     history_path.write_text(history_frame.to_json(orient="records", indent=2), encoding="utf-8")
+
+    print_iteration_report(history_frame, baseline_scores, improved_scores)
 
     print("Skill evolution demo complete.")
     print("Baseline validation scores:")
