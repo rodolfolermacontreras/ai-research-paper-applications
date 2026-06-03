@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillOpt: Self-Evolving Agent Skills - Executive One-Pager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #7c3aed;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #1e293b;
+            --light-bg: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --code-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--light-bg);
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem 4rem;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 3rem 0;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 1rem;
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            font-weight: 800;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+        }
+
+        /* Sections */
+        .section {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .section h2 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .section h3 {
+            font-size: 1.5rem;
+            margin: 1.5rem 0 1rem;
+            color: var(--secondary-color);
+        }
+
+        .section h4 {
+            font-size: 1.25rem;
+            margin: 1rem 0 0.75rem;
+            color: var(--text-primary);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+
+        thead {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr:hover {
+            background: var(--code-bg);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: var(--dark-bg);
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin: 0.5rem 0;
+        }
+
+        /* Highlight Boxes */
+        .highlight {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid var(--warning-color);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .success-box {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-left: 4px solid var(--success-color);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-left: 4px solid var(--primary-color);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 1.5rem 0;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin: 0.25rem;
+        }
+
+        .badge-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .badge-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .badge-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        /* Checklist */
+        .checklist {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .checklist li {
+            padding-left: 1.5rem;
+            position: relative;
+            margin: 0.75rem 0;
+        }
+
+        .checklist li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 3rem 0;
+            margin-top: 3rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        /* Print Styles */
+        @media print {
+            .nav {
+                display: none;
+            }
+            .container {
+                padding-top: 1rem;
+            }
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            .nav-links {
+                display: none;
+            }
+            .section {
+                padding: 1.5rem;
+            }
+            pre {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section {
+            animation: fadeIn 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <div class="nav-title">SkillOpt</div>
+            <ul class="nav-links">
+                <li><a href="#concept">Concept</a></li>
+                <li><a href="#algorithm">Algorithm</a></li>
+                <li><a href="#results">Results</a></li>
+                <li><a href="#applications">Applications</a></li>
+                <li><a href="#implementation">Implementation</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>SkillOpt</h1>
+            <p>Self-Evolving Agent Skills through Text-Space Optimization</p>
+        </div>
+
+        <!-- Core Concept -->
+        <div class="section" id="concept">
+            <h2>🎯 Core Concept</h2>
+            <p><strong>SkillOpt</strong> is the first systematic, controllable text-space optimizer for agent skills. It treats a skill document as the <strong>external trainable state</strong> of a frozen agent—similar to how weights are optimized in deep learning, but in natural language.</p>
+            
+            <div class="highlight">
+                <strong>Key Innovation:</strong> A separate optimizer model turns scored rollouts into bounded add/delete/replace edits on a skill document, accepting edits <strong>only when they improve held-out validation performance</strong>.
+            </div>
+
+            <h3>The Deep Learning Analogy</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Deep Learning</th>
+                        <th>SkillOpt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Parameters</td>
+                        <td>Skill document</td>
+                    </tr>
+                    <tr>
+                        <td>Gradient direction</td>
+                        <td>Trajectory-derived edits</td>
+                    </tr>
+                    <tr>
+                        <td>Learning rate</td>
+                        <td>Edit budget (max edits/step)</td>
+                    </tr>
+                    <tr>
+                        <td>Validation check</td>
+                        <td>Held-out selection gate</td>
+                    </tr>
+                    <tr>
+                        <td>Batch/minibatch/schedule</td>
+                        <td>Rollout batches, reflection minibatches, edit schedules</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Core Algorithm -->
+        <div class="section" id="algorithm">
+            <h2>💻 Core Algorithm</h2>
+            
+            <h3>Algorithm Overview</h3>
+            <pre><code># SkillOpt Optimization Loop
+
+Input:
+  - Frozen target model M
+  - Optimizer model O
+  - Initial skill s₀
+  - Train/validation/test splits
+  - Edit budget schedule Lₜ
+  
+Process:
+  for each epoch:
+    for each optimization step:
+      # 1. Forward Pass: Rollout Evidence
+      trajectories = execute_batch(M, current_skill, train_split)
+      
+      # 2. Backward Pass: Minibatch Reflection
+      failures, successes = split_trajectories(trajectories)
+      failure_edits = O.analyze_failures(failures)
+      success_edits = O.analyze_successes(successes)
+      
+      # 3. Bounded Text Update
+      merged_edits = merge_and_rank(failure_edits, success_edits)
+      selected_edits = merged_edits[:Lₜ]  # Apply edit budget
+      candidate_skill = apply_edits(current_skill, selected_edits)
+      
+      # 4. Validation Gate
+      score_candidate = evaluate(M, candidate_skill, validation_split)
+      score_current = evaluate(M, current_skill, validation_split)
+      
+      if score_candidate > score_current:
+        current_skill = candidate_skill  # Accept
+        if score_candidate > best_score:
+          best_skill = candidate_skill
+      else:
+        rejected_buffer.add(selected_edits)  # Negative feedback
+    
+    # 5. Epoch-wise Slow/Meta Update
+    slow_update = compare_epochs(prev_skill, current_skill)
+    meta_skill = update_optimizer_memory()
+
+Output: best_skill.md (300-2000 tokens)</code></pre>
+
+            <h3>Key Components</h3>
+            <ol>
+                <li><strong>Rollout Batch</strong> - Execute tasks with current skill, collect trajectories</li>
+                <li><strong>Minibatch Reflection</strong> - Analyze failures/successes in batches to find recurring patterns</li>
+                <li><strong>Edit Operations</strong> - APPEND, INSERT_AFTER, REPLACE, DELETE</li>
+                <li><strong>Edit Budget (Learning Rate)</strong> - Cosine schedule: Start large (Lₜ=8), decay to small (Lₜ=2)</li>
+                <li><strong>Validation Gate</strong> - Accept only if <code>score_new > score_current</code> (strict improvement)</li>
+                <li><strong>Rejected-Edit Buffer</strong> - Store failed edits as negative feedback for future steps</li>
+                <li><strong>Slow/Meta Update</strong> - Compare same tasks under previous vs. current skill at epoch boundaries</li>
+            </ol>
+        </div>
+
+        <!-- Results -->
+        <div class="section" id="results">
+            <h2>📊 Results & Validation</h2>
+            
+            <div class="success-box">
+                <h4>Best or tied-best on 52/52 evaluated (model, benchmark, harness) cells</h4>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Benchmark</th>
+                        <th>No Skill</th>
+                        <th>SkillOpt</th>
+                        <th>Gain</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>SearchQA</td>
+                        <td>77.7</td>
+                        <td>87.3</td>
+                        <td><strong>+9.6</strong></td>
+                    </tr>
+                    <tr>
+                        <td>SpreadsheetBench</td>
+                        <td>41.8</td>
+                        <td>80.7</td>
+                        <td><strong>+38.9</strong></td>
+                    </tr>
+                    <tr>
+                        <td>OfficeQA</td>
+                        <td>33.1</td>
+                        <td>72.1</td>
+                        <td><strong>+39.0</strong></td>
+                    </tr>
+                    <tr>
+                        <td>DocVQA</td>
+                        <td>78.8</td>
+                        <td>91.2</td>
+                        <td><strong>+12.4</strong></td>
+                    </tr>
+                    <tr>
+                        <td>LiveMathBench</td>
+                        <td>37.6</td>
+                        <td>66.9</td>
+                        <td><strong>+29.3</strong></td>
+                    </tr>
+                    <tr>
+                        <td>ALFWorld</td>
+                        <td>83.6</td>
+                        <td>95.5</td>
+                        <td><strong>+11.9</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="text-align: center; font-size: 1.25rem; margin: 2rem 0;">
+                <strong>GPT-5.5 Average: +23.5 points</strong>
+                <span class="badge badge-success">52/52 wins</span>
+            </p>
+
+            <h3>Key Findings</h3>
+            <ul class="checklist">
+                <li>Wins on all 52 cells - Best or tied across 7 models, 6 benchmarks, 3 harnesses</li>
+                <li>Beats all baselines - Outperforms human skills, one-shot LLM, Trace2Skill, TextGrad, GEPA, EvoSkill</li>
+                <li>Compact skills - Final artifacts: 300-2,000 tokens (median ~920 tokens)</li>
+                <li>Edit economy - Only 1-4 accepted edits produce massive gains</li>
+                <li>Transferable - Skills transfer across models, harnesses, and benchmarks</li>
+            </ul>
+        </div>
+
+        <!-- Applications -->
+        <div class="section" id="applications">
+            <h2>🛠️ Applications</h2>
+
+            <h3>When to Use SkillOpt</h3>
+            <div class="info-box">
+                <h4>Ideal Use Cases:</h4>
+                <ol>
+                    <li><strong>Procedural Tasks</strong> - Where rules, tool policies, output formats matter</li>
+                    <li><strong>Domain Adaptation</strong> - Adapt frozen frontier models to specific domains</li>
+                    <li><strong>Cost-Constrained Settings</strong> - No model weights to update</li>
+                    <li><strong>Reusable Artifacts</strong> - Train once, deploy across models/harnesses</li>
+                    <li><strong>Auditable AI</strong> - Skills are human-readable, inspectable text</li>
+                </ol>
+            </div>
+
+            <h3>Example Domains</h3>
+            <ul>
+                <li>📊 <strong>Spreadsheet automation</strong> (41.8 → 80.7)</li>
+                <li>📄 <strong>Document QA</strong> (33.1 → 72.1)</li>
+                <li>🧮 <strong>Mathematical reasoning</strong> (37.6 → 66.9)</li>
+                <li>🏠 <strong>Embodied agents</strong> (83.6 → 95.5)</li>
+                <li>🔍 <strong>Information retrieval</strong> (77.7 → 87.3)</li>
+            </ul>
+
+            <h3>What SkillOpt Learns</h3>
+            <p><strong>SearchQA:</strong> "Infer the expected answer type from clue wording, then choose the shortest canonical entity supported by co-occurring distinctive evidence."</p>
+            
+            <p><strong>SpreadsheetBench:</strong> "Inspect workbook structure and formulas, then write evaluated static values across the full requested target range instead of relying on Excel recalculation."</p>
+            
+            <p><strong>LiveMathBench:</strong> "In strongest-statement MCQs, rank choices by theorem strength and prefer a justified stronger-result option over true but weaker corollaries."</p>
+        </div>
+
+        <!-- Implementation Guide -->
+        <div class="section" id="implementation">
+            <h2>🚀 How to Use: Practical Implementation Guide</h2>
+
+            <h3>Step 1: Setup</h3>
+            <pre><code># Define your components
+target_model = "gpt-5.5"  # Frozen model to adapt
+optimizer_model = "gpt-5.5"  # Can be same or stronger
+harness = "direct_chat"  # or "codex", "claude_code"
+benchmark = "your_task"
+
+# Split your data
+train_split = dataset[:200]       # Training rollouts
+validation_split = dataset[200:250]  # Selection gate
+test_split = dataset[250:]        # Final evaluation only
+
+# Initialize skill
+initial_skill = """
+# Task: [Your Domain]
+
+## Core Approach
+[Basic strategy]
+
+## Key Guidelines
+[Initial rules]
+"""</code></pre>
+
+            <h3>Step 2: Configure Optimizer</h3>
+            <pre><code>config = {
+    "epochs": 4,
+    "rollout_batch_size": 40,
+    "reflection_minibatch_size": 8,
+    "edit_budget_initial": 4,
+    "edit_budget_schedule": "cosine",  # or "constant", "linear"
+    "edit_budget_floor": 2,
+    "validation_gate": "strict_improvement",
+    "slow_update_enabled": True,
+    "slow_update_samples": 20,
+    "meta_skill_enabled": True,
+    "rejected_buffer_enabled": True,
+}</code></pre>
+
+            <h3>Step 3: Run Optimization</h3>
+            <pre><code>from skillopt import SkillOptimizer
+
+optimizer = SkillOptimizer(
+    target_model=target_model,
+    optimizer_model=optimizer_model,
+    harness=harness,
+    config=config
+)
+
+best_skill, history = optimizer.optimize(
+    initial_skill=initial_skill,
+    train_data=train_split,
+    validation_data=validation_split,
+    test_data=test_split
+)
+
+# Output: best_skill.md + optimization history</code></pre>
+
+            <h3>Implementation Checklist</h3>
+            <ul class="checklist">
+                <li><strong>Frozen Target Model</strong> - The model you're adapting (no weight updates)</li>
+                <li><strong>Optimizer Model</strong> - Can be same or stronger (GPT-5.5 recommended)</li>
+                <li><strong>Train/Val/Test Splits</strong> - 2:1:7 default ratio</li>
+                <li><strong>Scoring Function</strong> - Automatic verifier for your domain</li>
+                <li><strong>Initial Skill</strong> - 100-500 token starting point</li>
+                <li><strong>Edit Budget Schedule</strong> - Cosine decay recommended</li>
+            </ul>
+        </div>
+
+        <!-- Key Insights -->
+        <div class="section">
+            <h2>🎓 Key Insights & Best Practices</h2>
+
+            <h3>What Makes SkillOpt Work</h3>
+            <ol>
+                <li><strong>Bounded Updates</strong> - Edit budget prevents unbounded rewrites, maintains continuity</li>
+                <li><strong>Validation Gating</strong> - Prevents plausible but harmful edits from accumulating</li>
+                <li><strong>Minibatch Reflection</strong> - Finds recurring patterns, not anecdotal fixes</li>
+                <li><strong>Failure Prioritization</strong> - Corrective edits outweigh reinforcement edits</li>
+                <li><strong>Negative Feedback</strong> - Rejected edits inform future optimizer calls</li>
+                <li><strong>Separation of Concerns</strong> - Deployed skill stays compact; optimizer memory separate</li>
+            </ol>
+
+            <h3>Common Pitfalls to Avoid</h3>
+            <div class="highlight">
+                <ul>
+                    <li>❌ <strong>Don't skip validation gate</strong> - Unconditional reflection accumulates harmful edits</li>
+                    <li>❌ <strong>Don't use unbounded rewrites</strong> - Destroys continuity, loses previous lessons</li>
+                    <li>❌ <strong>Don't ignore edit economy</strong> - 1-4 accepted edits is normal; more isn't better</li>
+                    <li>❌ <strong>Don't mix training-model and optimizer guidance</strong> - Keep meta-skill separate</li>
+                    <li>❌ <strong>Don't deploy on test set</strong> - Use held-out test only for final reporting</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Conclusions -->
+        <div class="section">
+            <h2>💡 Conclusions</h2>
+
+            <h3>Main Contributions</h3>
+            <ol>
+                <li><strong>First systematic text-space optimizer</strong> with training-style controls (batches, learning rates, validation, schedules)</li>
+                <li><strong>52/52 best-or-tied performance</strong> across models, benchmarks, harnesses</li>
+                <li><strong>Compact, transferable artifacts</strong> - 300-2K token skills work across models and harnesses</li>
+                <li><strong>Procedural knowledge extraction</strong> - Learns generalizable rules, not instance-specific fixes</li>
+                <li><strong>Zero inference-time cost</strong> - Optimizer runs offline; deployment adds only a text prompt</li>
+            </ol>
+
+            <div class="success-box">
+                <h4>🔑 Takeaway</h4>
+                <p><strong>SkillOpt proves that compact natural-language skills can serve as a practical domain-adaptation layer for frontier agents, enabling reusable improvement without modifying model weights.</strong></p>
+                <p style="margin-top: 1rem;"><strong>Bottom Line:</strong> If you have a frozen model, a scoring function, and a target domain, SkillOpt can optimize a 300-2K token skill that delivers +10 to +40 point gains—deployable across models and harnesses.</p>
+            </div>
+        </div>
+
+        <!-- References -->
+        <div class="section">
+            <h2>📚 References & Resources</h2>
+            <p><strong>Paper:</strong> <a href="https://arxiv.org/abs/2605.23904">SkillOpt: Executive Strategy for Self-Evolving Agent Skills</a> (arXiv:2605.23904v2)</p>
+            <p><strong>Authors:</strong> Yifan Yang et al. (Microsoft, Shanghai Jiao Tong University, Tongji University, Fudan University)</p>
+            <p><strong>Published:</strong> May 2026</p>
+            
+            <h3>Repository Files</h3>
+            <ul>
+                <li><strong>SkillOpt_Executive_OnePager.md</strong> - This document in Markdown format</li>
+                <li><strong>skillopt_implementation.py</strong> - Full Python implementation</li>
+                <li><strong>SkillOpt_Tutorial.ipynb</strong> - Interactive Jupyter tutorial</li>
+                <li><strong>README_SkillOpt.md</strong> - Quick start guide</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>SkillOpt: Self-Evolving Agent Skills</strong></p>
+            <p>For implementation details, optimizer prompts, and full experimental protocol, see the complete documentation.</p>
+            <p style="margin-top: 1rem;">Generated on June 2, 2026</p>
+        </div>
+    </div>
+</body>
+</html>
